@@ -1,16 +1,12 @@
-import React, { useState } from 'react';
-import { Settings, X, Save } from 'lucide-react';
+import React from 'react';
+import { X } from 'lucide-react';
 
 interface APIKeyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (key: string) => void;
-  currentKey: string;
 }
 
-export function APIKeyModal({ isOpen, onClose, onSave, currentKey }: APIKeyModalProps) {
-  const [keyInput, setKeyInput] = useState(currentKey);
-
+export function APIKeyModal({ isOpen, onClose }: APIKeyModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -28,38 +24,36 @@ export function APIKeyModal({ isOpen, onClose, onSave, currentKey }: APIKeyModal
           
           <div className="space-y-4">
             <p className="text-sm text-gray-400">
-              您可以配置自定义的 Gemini API Key。如果不填写，系统将尝试使用环境变量中默认配置的 Key。
+              当前版本已改为服务端代理模式，浏览器里不再直接保存模型密钥。请在部署平台的环境变量里配置 OpenAI 兼容接口参数。
             </p>
             
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                Gemini API Key
-              </label>
-              <input
-                type="password"
-                value={keyInput}
-                onChange={(e) => setKeyInput(e.target.value)}
-                placeholder="AIzaSy..."
-                className="w-full bg-tk-dark border border-tk-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-tk-cyan focus:ring-1 focus:ring-tk-cyan transition-all font-mono"
-              />
+            <div className="rounded-xl border border-tk-border bg-tk-dark/80 p-4 space-y-3">
+              <div>
+                <div className="text-xs font-semibold text-gray-300 uppercase tracking-wider">必填</div>
+                <div className="mt-1 font-mono text-sm text-tk-cyan">OPENAI_API_KEY</div>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-gray-300 uppercase tracking-wider">推荐</div>
+                <div className="mt-1 font-mono text-sm text-gray-200">OPENAI_MODEL=gpt-4.1-mini</div>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-gray-300 uppercase tracking-wider">可选</div>
+                <div className="mt-1 font-mono text-sm text-gray-200">OPENAI_BASE_URL=https://api.openai.com/v1</div>
+              </div>
             </div>
+
+            <p className="text-xs leading-relaxed text-gray-500">
+              如果你使用的是国内或第三方模型平台，只要它提供 OpenAI 兼容接口，就把对应的 Base URL、模型名和密钥配置到服务端环境变量即可。
+            </p>
             
-            <div className="pt-4 flex justify-end gap-3">
+            <div className="pt-2 flex justify-end">
               <button 
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 transition-colors"
+                className="px-5 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-tk-cyan to-tk-pink text-white hover:opacity-90 transition-opacity shadow-lg shadow-tk-pink/20"
               >
-                取消
-              </button>
-              <button 
-                onClick={() => {
-                  onSave(keyInput);
-                  onClose();
-                }}
-                className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-tk-cyan to-tk-pink text-white hover:opacity-90 transition-opacity shadow-lg shadow-tk-pink/20"
-              >
-                <Save className="w-4 h-4" />
-                保存
+                我知道了
               </button>
             </div>
           </div>

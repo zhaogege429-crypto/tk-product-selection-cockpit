@@ -17,7 +17,7 @@
 - 结构化输出选品结论，不只给泛泛建议
 - 从内容表现力、成交效率、流量放大性、风险可控性四个维度做判断
 - 明确推荐更适合的承接路径：短视频、直播、达人分销或组合打法
-- 支持在前端录入 Gemini API Key，本地保存到浏览器
+- 支持通过服务端代理调用 OpenAI 兼容接口，避免在前端暴露模型密钥
 
 ## 技术栈
 
@@ -25,7 +25,8 @@
 - TypeScript
 - Vite
 - Tailwind CSS 4
-- Gemini API
+- Vercel Functions
+- OpenAI 兼容接口
 
 ## 本地运行
 
@@ -37,7 +38,9 @@ cp .env.example .env.local
 在 `.env.local` 中填入：
 
 ```bash
-GEMINI_API_KEY=your_api_key
+OPENAI_API_KEY=your_api_key
+OPENAI_MODEL=gpt-4.1-mini
+OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
 然后启动开发环境：
@@ -52,21 +55,25 @@ npm run dev
 http://localhost:3000
 ```
 
+本地开发时，Vite 会代理 `/api/analyze` 到同进程的服务端逻辑，所以不需要额外再起一个后端。
+
 ## 生产构建
 
 ```bash
 npm run build
 ```
 
-## GitHub Pages
+## 部署配置
 
-仓库内已包含 GitHub Pages 自动部署工作流。推送到 `main` 后会自动构建并部署，站点地址将是：
+部署到 Vercel 前，请先在项目环境变量里配置：
 
-```text
-https://zhaogege429-crypto.github.io/tk-product-selection-cockpit/
+```bash
+OPENAI_API_KEY=your_api_key
+OPENAI_MODEL=gpt-4.1-mini
+OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
-前提是仓库已开启 GitHub Pages，并使用 GitHub Actions 作为发布来源。
+如果你使用的是第三方或国内模型平台，只要它提供 OpenAI 兼容接口，替换 `OPENAI_BASE_URL` 和 `OPENAI_MODEL` 即可。
 
 ## 文档入口
 
@@ -78,6 +85,6 @@ https://zhaogege429-crypto.github.io/tk-product-selection-cockpit/
 
 ## 当前限制
 
-- 当前没有后端代理层，API Key 仍在前端使用链路中
+- 当前依赖外部 OpenAI 兼容模型服务，输出质量与可用性受服务商模型能力影响
 - 历史报告、批量分析、团队协作、权限控制、导出能力尚未接入
 - 目前不支持直接解析商品链接、图片、视频或外部电商数据

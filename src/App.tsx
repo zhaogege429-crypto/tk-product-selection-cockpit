@@ -1,82 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Settings, Play, Archive, HelpCircle } from 'lucide-react';
-import { GoogleGenAI, Type } from '@google/genai';
 import { APIKeyModal } from './components/APIKeyModal';
 import { ReportDashboard } from './components/ReportDashboard';
 import { TKReport, FormData } from './types';
-
-// The system instruction requested by the user
-const systemInstruction = `你是“TK选品判断智能体”，是一个专门服务于TikTok电商团队的选品决策助手。
-你的核心职责不是泛泛分析产品，而是帮助用户判断：
-1. 这个产品是否适合在TikTok生态中销售
-2. 这个产品更适合短视频带货、直播带货、达人分销，还是不建议做
-3. 这个产品的核心卖点、成交逻辑和运营风险分别是什么
-
-你必须站在资深TikTok电商操盘手的角度输出结果，重点关注“内容可卖性、流量可放大性、转化可成交性”。
-
-分析原则：
-1. TikTok适合的是“能被内容卖出去的货”，不是所有能卖的货都适合TK
-2. 选品判断要优先考虑：内容表现力、卖点理解门槛、冲动消费属性、转化效率、售后和合规风险
-3. 产品“便宜”不等于“适合TK”，必须能形成内容吸引力和购买驱动
-4. 不允许只说“可以试试”，必须给出明确分级
-5. 如果信息不足，先说明缺失信息，再基于现有信息输出初步判断
-6. 所有结论必须先结论，再原因，再建议
-7. 禁止编造平台内部数据和虚假行业数据
-8. 输出必须像懂TikTok卖货的人，而不是泛化电商顾问
-
-核心判断维度：
-一、内容可卖性（是否有明显展示感、前后对比、结果感、适合演示、前3秒抓人）
-二、成交可转化性（卖点一句话讲清、低决策门槛、冲动下单、价格/价值优势、短链路成交）
-三、流量可放大性（适合自然流测款、投流放大、达人分发、直播承接）
-四、风险可控性（差评、夸大宣传、合规、退货率、尺码/效果因人而异、教育成本高）
-五、货盘角色判断（引流款、爆款、利润款、直播福利款、达人测款）
-
-如果你觉得信息不足以做出完全准确的判断，请在缺失信息字段中指明，但基于已有信息，你必须给出你的推测和判断结论，不能完全拒绝回答。`;
-
-// Expected schema matching exactly the interface
-const responseSchema = {
-  type: Type.OBJECT,
-  properties: {
-    conclusion: {
-      type: Type.OBJECT,
-      properties: {
-        level: { type: Type.STRING, description: "必选一项：优先做 | 可以测试 | 谨慎进入 | 不建议做" },
-        summary: { type: Type.STRING, description: "一句话结论摘要" }
-      },
-      required: ["level", "summary"]
-    },
-    adaptability: {
-      type: Type.OBJECT,
-      properties: {
-        contentSellability: { type: Type.STRING, description: "高 | 中 | 低" },
-        conversionPotential: { type: Type.STRING, description: "高 | 中 | 低" },
-        trafficScaling: { type: Type.STRING, description: "高 | 中 | 低" },
-        riskLevel: { type: Type.STRING, description: "高 | 中 | 低" },
-        reasons: { type: Type.ARRAY, items: { type: Type.STRING }, description: "核心判断原因，1-3条" }
-      },
-      required: ["contentSellability", "conversionPotential", "trafficScaling", "riskLevel", "reasons"]
-    },
-    recommendedPath: {
-      type: Type.OBJECT,
-      properties: {
-        path: { type: Type.STRING, description: "短视频自然流 | 短视频付费投流 | 达人分销 | 直播带货 | 组合打法 | 暂不建议" },
-        reason: { type: Type.STRING, description: "原因说明" }
-      },
-      required: ["path", "reason"]
-    },
-    sellingPoints: { type: Type.ARRAY, items: { type: Type.STRING }, description: "最适合主打的1-3个卖点" },
-    operationsAdvice: { type: Type.ARRAY, items: { type: Type.STRING }, description: "至少1-3条行动建议" },
-    missingInfo: {
-      type: Type.OBJECT,
-      properties: {
-        missingFields: { type: Type.ARRAY, items: { type: Type.STRING }, description: "缺失的补充信息字段名称集合，如果无缺失则为空数组" },
-        impact: { type: Type.STRING, description: "说明缺失信息对判断造成的影响" }
-      },
-      required: ["missingFields", "impact"]
-    }
-  },
-  required: ["conclusion", "adaptability", "recommendedPath", "sellingPoints", "operationsAdvice", "missingInfo"]
-};
 
 export default function App() {
   const [formData, setFormData] = useState<FormData>({
@@ -93,18 +19,6 @@ export default function App() {
   const [error, setError] = useState('');
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-
-  // Hydrate custom api key from localstorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('GEMINI_API_KEY');
-    if (saved) setApiKey(saved);
-  }, []);
-
-  const handleSaveApiKey = (key: string) => {
-    setApiKey(key);
-    localStorage.setItem('GEMINI_API_KEY', key);
-  };
 
   const handleGenerate = async () => {
     if (!formData.name && !formData.category && !formData.sellingPoints) {
@@ -116,55 +30,25 @@ export default function App() {
     setIsLoading(true);
     setReport(null);
 
-    const effectiveKey = apiKey || process.env.GEMINI_API_KEY;
-    if (!effectiveKey) {
-      setError('未检测到 Gemini API Key，点击右上角齿轮图标配置。');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const ai = new GoogleGenAI({ apiKey: effectiveKey });
-      
-      const userPrompt = `
-请分析以下产品信息：
-产品名称/链接/图片描述: ${formData.name || '未提供'}
-类目: ${formData.category || '未提供'}
-售价或价格带: ${formData.price || '未提供'}
-核心卖点: ${formData.sellingPoints || '未提供'}
-使用场景与目标人群: ${formData.audience || '未提供'}
-补充信息与已测结果: ${formData.extra || '未提供'}
-      `.trim();
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
-        contents: userPrompt,
-        config: {
-          systemInstruction,
-          responseMimeType: 'application/json',
-          responseSchema: responseSchema,
-          temperature: 0.2, // Low temp for analytical task
-        }
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
       });
 
-      if (response.text) {
-        let rawText = response.text;
-        // Strip markdown formatting if the model wrapped the JSON in it
-        if (rawText.startsWith('```')) {
-          rawText = rawText.replace(/^```json\s*/, '').replace(/```$/, '').trim();
-        }
-        try {
-          const resultData = JSON.parse(rawText) as TKReport;
-          setReport(resultData);
-        } catch (e: any) {
-          throw new Error('解析报告数据失败: ' + e.message + '\\n原文: ' + response.text.substring(0, 100));
-        }
-      } else {
-        throw new Error('未收到有效的分析报告。');
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.error || '服务端分析失败，请稍后重试。');
       }
+
+      setReport(payload as TKReport);
     } catch (err: any) {
       console.error(err);
-      setError(err?.message || '生成报告时遇到未知错误，请检查网络或 API Key。');
+      setError(err?.message || '生成报告时遇到未知错误，请检查服务端配置。');
     } finally {
       setIsLoading(false);
     }
@@ -320,8 +204,6 @@ export default function App() {
       <APIKeyModal 
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        onSave={handleSaveApiKey}
-        currentKey={apiKey}
       />
 
     </div>
